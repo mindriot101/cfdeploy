@@ -8,10 +8,10 @@ import (
 	"log"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/smithy-go"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 const stackName = "swalker-test"
@@ -55,9 +55,10 @@ func (d *deployer) deploy(ctx context.Context) error {
 		TemplateBody: aws.String(d.tpl),
 	})
 	if err != nil {
-		var oe *smithy.OperationError
-		if errors.As(err, &oe) {
-			log.Printf("failed to call service: %s, operation: %s, error: %v", oe.Service(), oe.Operation(), oe.Unwrap())
+		// why can we not use Is here?
+		var aex *types.AlreadyExistsException
+		if errors.As(err, &aex) {
+			return d.update(ctx)
 		}
 		return fmt.Errorf("error creating stack: %w", err)
 	}
@@ -66,6 +67,13 @@ func (d *deployer) deploy(ctx context.Context) error {
 
 func (d *deployer) update(ctx context.Context) error {
 	log.Printf("updating stack")
+	_, err := d.cf.UpdateStack(ctx, &cloudformation.UpdateStackInput{
+		StackName:    aws.String(stackName),
+		TemplateBody: aws.String(d.tpl),
+	})
+	if err != nil {
+		log.Fatalf("error updating stack: %v", err)
+	}
 	return nil
 }
 
