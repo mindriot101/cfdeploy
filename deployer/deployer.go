@@ -13,7 +13,7 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-const stackName = "swalker-test"
+const StackName = "swalker-test"
 
 type client interface {
 	CreateStack(context.Context, *cloudformation.CreateStackInput, ...func(*cloudformation.Options)) (*cloudformation.CreateStackOutput, error)
@@ -37,7 +37,7 @@ func New(c client, tpl string) *Deployer {
 func (d *Deployer) Deploy(ctx context.Context) error {
 	// Try to create the stack
 	res, err := d.cf.CreateStack(ctx, &cloudformation.CreateStackInput{
-		StackName:    aws.String(stackName),
+		StackName:    aws.String(StackName),
 		TemplateBody: aws.String(d.tpl),
 	})
 	if err != nil {
@@ -55,7 +55,7 @@ func (d *Deployer) Deploy(ctx context.Context) error {
 func (d *Deployer) update(ctx context.Context) error {
 	log.Printf("updating stack")
 	res, err := d.cf.UpdateStack(ctx, &cloudformation.UpdateStackInput{
-		StackName:    aws.String(stackName),
+		StackName:    aws.String(StackName),
 		TemplateBody: aws.String(d.tpl),
 	})
 	if err != nil {
@@ -96,7 +96,7 @@ func (d *Deployer) waitForStack(ctx context.Context, stackId string) error {
 
 	for {
 		res, err := d.cf.DescribeStacks(ctx, &cloudformation.DescribeStacksInput{
-			StackName: aws.String(stackName),
+			StackName: aws.String(StackName),
 		})
 		if err != nil {
 			return fmt.Errorf("error fetching stack status: %w", err)
@@ -105,7 +105,6 @@ func (d *Deployer) waitForStack(ctx context.Context, stackId string) error {
 			return fmt.Errorf("unexpected number of stacks: %d", len(res.Stacks))
 		}
 		ss := res.Stacks[0].StackStatus
-		log.Printf("stack status: %s", ss)
 		for _, st := range terminalStates {
 			if st == ss {
 				for _, st2 := range failureStates {
@@ -123,7 +122,7 @@ func (d *Deployer) waitForStack(ctx context.Context, stackId string) error {
 func (d *Deployer) Undeploy(ctx context.Context) error {
 	log.Printf("deleting stack")
 	_, err := d.cf.DeleteStack(ctx, &cloudformation.DeleteStackInput{
-		StackName: aws.String(stackName),
+		StackName: aws.String(StackName),
 	})
 	return err
 }
