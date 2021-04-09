@@ -2,19 +2,15 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
-	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/mindriot101/cfdeploy/deployer"
 )
-
-const stackName = "swalker-test"
 
 func isFile(path string) bool {
 	s, err := os.Stat(path)
@@ -43,44 +39,6 @@ func usage() {
 	os.Exit(1)
 }
 
-type deployer struct {
-	cf  *cloudformation.Client
-	tpl string
-}
-
-func (d *deployer) deploy(ctx context.Context) error {
-	// Try to create the stack
-	_, err := d.cf.CreateStack(ctx, &cloudformation.CreateStackInput{
-		StackName:    aws.String(stackName),
-		TemplateBody: aws.String(d.tpl),
-	})
-	if err != nil {
-		// why can we not use Is here?
-		var aex *types.AlreadyExistsException
-		if errors.As(err, &aex) {
-			return d.update(ctx)
-		}
-		return fmt.Errorf("error creating stack: %w", err)
-	}
-	return nil
-}
-
-func (d *deployer) update(ctx context.Context) error {
-	log.Printf("updating stack")
-	_, err := d.cf.UpdateStack(ctx, &cloudformation.UpdateStackInput{
-		StackName:    aws.String(stackName),
-		TemplateBody: aws.String(d.tpl),
-	})
-	if err != nil {
-		log.Fatalf("error updating stack: %v", err)
-	}
-	return nil
-}
-
-func (d *deployer) undeploy(ctx context.Context) error {
-	return nil
-}
-
 func main() {
 	if len(os.Args) != 2 {
 		usage()
@@ -101,16 +59,13 @@ func main() {
 		log.Fatalf("cannot read template file: %v", err)
 	}
 	tpl := string(tplB)
-	deployer := &deployer{
-		cf:  cf,
-		tpl: tpl,
-	}
+	deployer := deployer.New(cf, tpl)
 
 	switch os.Args[1] {
 	case "deploy":
-		err = deployer.deploy(ctx)
+		err = deployer.Deploy(ctx)
 	case "undeploy":
-		err = deployer.undeploy(ctx)
+		err = deployer.Undeploy(ctx)
 	default:
 		usage()
 	}
