@@ -4,16 +4,15 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/google/uuid"
+	"github.com/mindriot101/cfdeploy/cmd"
 	"github.com/mindriot101/cfdeploy/deployer"
 )
 
@@ -138,6 +137,11 @@ func presentChangeSet(res *cloudformation.DescribeChangeSetOutput, out io.Writer
 }
 
 func main() {
+	cmd.Execute()
+}
+
+/*
+func main2() {
 	if len(os.Args) != 2 {
 		usage()
 	}
@@ -173,3 +177,4 @@ func main() {
 		log.Fatalf("error: %v", err)
 	}
 }
+*/
