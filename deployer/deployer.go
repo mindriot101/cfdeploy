@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/aws/smithy-go"
@@ -25,13 +27,6 @@ type client interface {
 type Deployer struct {
 	cf  client
 	tpl string
-}
-
-func New(c client, tpl string) *Deployer {
-	return &Deployer{
-		cf:  c,
-		tpl: tpl,
-	}
 }
 
 func (d *Deployer) Deploy(ctx context.Context) error {
@@ -125,4 +120,23 @@ func (d *Deployer) Undeploy(ctx context.Context) error {
 		StackName: aws.String(StackName),
 	})
 	return err
+}
+
+func New(ctx context.Context, templateFilename string) (*Deployer, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	cf := cloudformation.NewFromConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("error loading AWS config: %v", err)
+	}
+	_ = cf
+	tplB, err := ioutil.ReadFile(templateFilename)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read template file: %v", err)
+	}
+	tpl := string(tplB)
+	d := &Deployer{
+		cf:  cf,
+		tpl: tpl,
+	}
+	return d, nil
 }
