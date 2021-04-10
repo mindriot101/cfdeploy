@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/aws/smithy-go"
+	"github.com/mindriot101/cfdeploy/internal/template"
 )
 
 const StackName = "swalker-test"
@@ -24,6 +24,10 @@ type client interface {
 	DescribeStacks(context.Context, *cloudformation.DescribeStacksInput, ...func(*cloudformation.Options)) (*cloudformation.DescribeStacksOutput, error)
 }
 
+type Templater interface {
+	String() (string, error)
+}
+
 type Deployer struct {
 	cf  client
 	tpl string
@@ -33,7 +37,8 @@ func (d *Deployer) Deploy(ctx context.Context, capabilities []string) error {
 	// Try to create the stack
 	var caps []types.Capability
 	for _, c := range capabilities {
-		if c == "named_iam" {
+		switch c {
+		case "named_iam":
 			caps = append(caps, types.CapabilityCapabilityNamedIam)
 		}
 	}
@@ -130,21 +135,23 @@ func (d *Deployer) Undeploy(ctx context.Context) error {
 	return err
 }
 
+func newDeployer(ctx context.Context, c client, tpl Templater) (*Deployer, error) {
+	t, err := tpl.String()
+	if err != nil {
+		return nil, fmt.Errorf("error reading template: %w", err)
+	}
+	d := &Deployer{
+		cf:  c,
+		tpl: t,
+	}
+	return d, nil
+}
+
 func New(ctx context.Context, templateFilename string) (*Deployer, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	cf := cloudformation.NewFromConfig(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("error loading AWS config: %v", err)
 	}
-	_ = cf
-	tplB, err := ioutil.ReadFile(templateFilename)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read template file: %v", err)
-	}
-	tpl := string(tplB)
-	d := &Deployer{
-		cf:  cf,
-		tpl: tpl,
-	}
-	return d, nil
+	return newDeployer(ctx, cf, template.New(templateFilename))
 }
