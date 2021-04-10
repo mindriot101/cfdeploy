@@ -29,17 +29,24 @@ type Deployer struct {
 	tpl string
 }
 
-func (d *Deployer) Deploy(ctx context.Context) error {
+func (d *Deployer) Deploy(ctx context.Context, capabilities []string) error {
 	// Try to create the stack
+	var caps []types.Capability
+	for _, c := range capabilities {
+		if c == "named_iam" {
+			caps = append(caps, types.CapabilityCapabilityNamedIam)
+		}
+	}
 	res, err := d.cf.CreateStack(ctx, &cloudformation.CreateStackInput{
 		StackName:    aws.String(StackName),
 		TemplateBody: aws.String(d.tpl),
+		Capabilities: caps,
 	})
 	if err != nil {
 		// why can we not use Is here?
 		var aex *types.AlreadyExistsException
 		if errors.As(err, &aex) {
-			return d.update(ctx)
+			return d.update(ctx, caps)
 		}
 		return fmt.Errorf("error creating stack: %w", err)
 	}
@@ -47,11 +54,12 @@ func (d *Deployer) Deploy(ctx context.Context) error {
 	return nil
 }
 
-func (d *Deployer) update(ctx context.Context) error {
+func (d *Deployer) update(ctx context.Context, caps []types.Capability) error {
 	log.Printf("updating stack")
 	res, err := d.cf.UpdateStack(ctx, &cloudformation.UpdateStackInput{
 		StackName:    aws.String(StackName),
 		TemplateBody: aws.String(d.tpl),
+		Capabilities: caps,
 	})
 	if err != nil {
 		var ge *smithy.GenericAPIError
