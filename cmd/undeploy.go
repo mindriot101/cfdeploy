@@ -14,7 +14,8 @@ func init() {
 }
 
 var undeployCmd = &cobra.Command{
-	Use: "undeploy",
+	Use:   "undeploy",
+	Short: "Tear down a stack",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("undeploying")
 		ctx := context.Background()

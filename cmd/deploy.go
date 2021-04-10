@@ -13,7 +13,8 @@ func init() {
 }
 
 var deployCmd = &cobra.Command{
-	Use: "deploy",
+	Use:   "deploy",
+	Short: "Deploy or update a template",
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("deploying")
 		ctx := context.Background()
