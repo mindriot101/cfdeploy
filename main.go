@@ -24,20 +24,6 @@ func isFile(path string) bool {
 	return !s.IsDir()
 }
 
-func templateFilename() (string, error) {
-	fnames := []string{
-		"cloudformation.yml",
-		"cloudformation.template",
-	}
-	for _, fname := range fnames {
-		if isFile(fname) {
-			return fname, nil
-		}
-	}
-
-	return "", fmt.Errorf("cannot find template file")
-}
-
 func usage() {
 	fmt.Printf("usage: %s <deploy|undeploy>\n", os.Args[0])
 	os.Exit(1)
