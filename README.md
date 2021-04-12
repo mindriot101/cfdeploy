@@ -1,5 +1,7 @@
 # cfdeploy
 
+**This repository is archived since I learnt that `aws cloudformation deploy` exists***
+
 Helps manage cloudformation stacks from the command line.
 
 Performs two commands:
